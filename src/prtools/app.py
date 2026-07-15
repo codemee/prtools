@@ -1,0 +1,145 @@
+from __future__ import annotations
+
+import sys
+from collections.abc import Sequence
+
+from PySide6.QtCore import QObject, QSignalBlocker
+from PySide6.QtWidgets import QApplication, QMessageBox
+
+from prtools.keyboard import KeyboardMonitor
+from prtools.overlays import KeystrokeOverlay, SpotlightOverlay
+from prtools.settings import SettingsStore, SettingsStoreProtocol
+from prtools.tray import TrayController
+
+
+class AppController(QObject):
+    def __init__(
+        self,
+        app: QApplication,
+        store: SettingsStoreProtocol | None = None,
+        monitor: KeyboardMonitor | None = None,
+    ) -> None:
+        super().__init__()
+        self._app = app
+        self._store = store or SettingsStore()
+        self.settings = self._store.load()
+        self.spotlight = SpotlightOverlay(self.settings.spotlight)
+        self.keystroke = KeystrokeOverlay(self.settings.keystroke)
+        self.monitor = monitor or KeyboardMonitor(self)
+        self.tray = TrayController(self.settings, self)
+        self._shutting_down = False
+
+        self.tray.connect_settings(
+            spotlight_enabled=self.set_spotlight_enabled,
+            spotlight_color=self.set_spotlight_color,
+            spotlight_opacity=self.set_spotlight_opacity,
+            spotlight_size=self.set_spotlight_size,
+            keystroke_enabled=self.set_keystroke_enabled,
+            keystroke_color=self.set_keystroke_color,
+            keystroke_opacity=self.set_keystroke_opacity,
+        )
+        self.tray.exit_requested.connect(self.shutdown)
+        self.monitor.chord_pressed.connect(self.keystroke.show_chord)
+        self.monitor.all_released.connect(self.keystroke.keys_released)
+        self.monitor.failed.connect(self._keyboard_failed)
+        self._app.aboutToQuit.connect(self.cleanup)
+
+    def start(self) -> None:
+        self.tray.show()
+        self.spotlight.set_enabled(self.settings.spotlight.enabled)
+        if self.settings.keystroke.enabled:
+            self.set_keystroke_enabled(True)
+
+    def set_spotlight_enabled(self, enabled: bool) -> None:
+        self.settings.spotlight.enabled = enabled
+        self.spotlight.set_enabled(enabled)
+        self._save()
+
+    def set_spotlight_color(self, color: str) -> None:
+        self.settings.spotlight.color = color
+        self._apply_spotlight_appearance()
+
+    def set_spotlight_opacity(self, opacity: int) -> None:
+        self.settings.spotlight.opacity = opacity
+        self._apply_spotlight_appearance()
+
+    def set_spotlight_size(self, size: int) -> None:
+        self.settings.spotlight.size = size
+        self._apply_spotlight_appearance()
+
+    def _apply_spotlight_appearance(self) -> None:
+        value = self.settings.spotlight
+        self.spotlight.set_appearance(value.color, value.opacity, value.size)
+        self._save()
+
+    def set_keystroke_enabled(self, enabled: bool) -> None:
+        if enabled:
+            success, error = self.monitor.start()
+            if not success:
+                self._disable_keystroke_ui()
+                self.tray.notify_warning(f"無法啟用按鍵顯示：{error or '未知錯誤'}")
+                return
+        else:
+            self.monitor.stop()
+            self.keystroke.hide_now()
+        self.settings.keystroke.enabled = enabled
+        self._save()
+
+    def set_keystroke_color(self, color: str) -> None:
+        self.settings.keystroke.color = color
+        self._apply_keystroke_appearance()
+
+    def set_keystroke_opacity(self, opacity: int) -> None:
+        self.settings.keystroke.opacity = opacity
+        self._apply_keystroke_appearance()
+
+    def _apply_keystroke_appearance(self) -> None:
+        value = self.settings.keystroke
+        self.keystroke.set_appearance(value.color, value.opacity)
+        self._save()
+
+    def _keyboard_failed(self, message: str) -> None:
+        self._disable_keystroke_ui()
+        self.tray.notify_warning(f"按鍵監聽已停止：{message}")
+
+    def _disable_keystroke_ui(self) -> None:
+        self.monitor.stop()
+        self.keystroke.hide_now()
+        self.settings.keystroke.enabled = False
+        with QSignalBlocker(self.tray.panel.keystroke_enabled):
+            self.tray.panel.set_keystroke_enabled(False)
+        self._save()
+
+    def _save(self) -> None:
+        self._store.save(self.settings)
+
+    def shutdown(self) -> None:
+        if self._shutting_down:
+            return
+        self._shutting_down = True
+        self.cleanup()
+        self._app.quit()
+
+    def cleanup(self) -> None:
+        self.monitor.stop()
+        self.spotlight.set_enabled(False)
+        self.keystroke.hide_now()
+        self.tray.hide()
+
+
+def create_application(arguments: Sequence[str] | None = None) -> QApplication:
+    app = QApplication(list(arguments) if arguments is not None else sys.argv)
+    app.setApplicationName("簡報瑞士刀")
+    app.setOrganizationName("prtools")
+    app.setQuitOnLastWindowClosed(False)
+    return app
+
+
+def main() -> int:
+    app = create_application()
+    if not TrayController.is_available():
+        QMessageBox.critical(None, "簡報瑞士刀", "此桌面環境沒有可用的系統匣。")
+        return 1
+    controller = AppController(app)
+    controller.start()
+    return app.exec()
