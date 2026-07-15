@@ -4,7 +4,7 @@
 
 ## 功能
 
-- 聚光燈游標：以不攔截點擊的半透明圓圈跟隨游標，可調整顏色、透明度與 48–320 px 圓圈大小。
+- 聚光燈游標：可調整顏色、透明度與 48–320 px 圓圈大小；Windows 使用真正的系統游標，macOS/Linux 使用不攔截點擊的透明覆蓋層。
 - 按鍵顯示：在游標所在螢幕中央下方顯示單鍵或組合鍵，不會攔截原本的鍵盤輸入。
 - 自動保存：記住兩項功能的啟用狀態與外觀設定。
 - 多螢幕與高 DPI：使用 Qt 邏輯像素定位與繪製。
@@ -35,11 +35,17 @@ uv sync
 uv run pyside6-deploy -c pysidedeploy.spec --force
 ```
 
-輸出位於 `dist/`。Windows、macOS 與 Linux 必須各自在對應平台建置，不支援交叉編譯。
+Windows 還需要建立獨立的游標復原 watchdog：
+
+```powershell
+uv run python -m nuitka src/prtools/cursor_watchdog.py --onefile --output-dir=dist --output-filename=prtools-cursor-watchdog.exe --assume-yes-for-downloads
+```
+
+主程式與 `prtools-cursor-watchdog.exe` 必須放在同一目錄。輸出位於 `dist/`；Windows、macOS 與 Linux 必須各自在對應平台建置，不支援交叉編譯。
 
 ## 平台注意事項
 
-- Windows：不需要額外權限。
+- Windows：不需要額外權限。啟用聚光燈時會暫時替換系統游標，停用或結束時自動恢復；獨立 watchdog 會在主程式異常終止時復原游標。
 - macOS：首次啟用按鍵顯示時，請依系統提示授予「輸入監控」或「輔助使用」權限。拒絕後按鍵顯示會保持關閉。
 - Linux：完整支援目標為 X11，桌面環境必須提供 StatusNotifierItem 或 XEmbed 系統匣。GNOME 可能需要 AppIndicator 類型的擴充套件。
 - Wayland：受全域輸入與覆蓋層協定限制，按鍵顯示和點擊穿透不保證可用；程式會在選單中顯示警告。

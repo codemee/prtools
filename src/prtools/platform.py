@@ -33,6 +33,32 @@ def make_window_click_through(widget: QWidget) -> None:
         return
 
 
+def keep_window_topmost(widget: QWidget) -> None:
+    """Keep an overlay above other topmost Windows such as the taskbar."""
+    if sys.platform != "win32" or not widget.isVisible():
+        return
+    try:
+        import ctypes
+
+        user32 = ctypes.windll.user32
+        hwnd_topmost = -1
+        no_size = 0x0001
+        no_move = 0x0002
+        no_activate = 0x0010
+        no_owner_z_order = 0x0200
+        user32.SetWindowPos(
+            int(widget.winId()),
+            hwnd_topmost,
+            0,
+            0,
+            0,
+            0,
+            no_size | no_move | no_activate | no_owner_z_order,
+        )
+    except (OSError, AttributeError, TypeError):
+        return
+
+
 def _make_windows_click_through(window_id: int) -> None:
     import ctypes
 
@@ -49,6 +75,20 @@ def _make_windows_click_through(window_id: int) -> None:
         window_id,
         index_extended_style,
         current | transparent | layered | no_activate | tool_window,
+    )
+    hwnd_topmost = -1
+    no_size = 0x0001
+    no_move = 0x0002
+    no_activate_position = 0x0010
+    no_owner_z_order = 0x0200
+    user32.SetWindowPos(
+        window_id,
+        hwnd_topmost,
+        0,
+        0,
+        0,
+        0,
+        no_size | no_move | no_activate_position | no_owner_z_order,
     )
 
 

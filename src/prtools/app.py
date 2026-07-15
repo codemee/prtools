@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Sequence
+from contextlib import suppress
 
 from PySide6.QtCore import QObject, QSignalBlocker
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from prtools.keyboard import KeyboardMonitor
-from prtools.overlays import KeystrokeOverlay, SpotlightOverlay
+from prtools.overlays import KeystrokeOverlay
 from prtools.settings import SettingsStore, SettingsStoreProtocol
+from prtools.spotlight import SpotlightBackend, create_spotlight
 from prtools.tray import TrayController
 
 
@@ -18,12 +20,13 @@ class AppController(QObject):
         app: QApplication,
         store: SettingsStoreProtocol | None = None,
         monitor: KeyboardMonitor | None = None,
+        spotlight: SpotlightBackend | None = None,
     ) -> None:
         super().__init__()
         self._app = app
         self._store = store or SettingsStore()
         self.settings = self._store.load()
-        self.spotlight = SpotlightOverlay(self.settings.spotlight)
+        self.spotlight = spotlight or create_spotlight(self.settings.spotlight)
         self.keystroke = KeystrokeOverlay(self.settings.keystroke)
         self.monitor = monitor or KeyboardMonitor(self)
         self.tray = TrayController(self.settings, self)
@@ -51,8 +54,13 @@ class AppController(QObject):
             self.set_keystroke_enabled(True)
 
     def set_spotlight_enabled(self, enabled: bool) -> None:
+        try:
+            self.spotlight.set_enabled(enabled)
+        except Exception as error:
+            self._disable_spotlight_ui()
+            self.tray.notify_warning(f"無法啟用聚光燈游標：{error}")
+            return
         self.settings.spotlight.enabled = enabled
-        self.spotlight.set_enabled(enabled)
         self._save()
 
     def set_spotlight_color(self, color: str) -> None:
@@ -69,7 +77,20 @@ class AppController(QObject):
 
     def _apply_spotlight_appearance(self) -> None:
         value = self.settings.spotlight
-        self.spotlight.set_appearance(value.color, value.opacity, value.size)
+        try:
+            self.spotlight.set_appearance(value.color, value.opacity, value.size)
+        except Exception as error:
+            self._disable_spotlight_ui()
+            self.tray.notify_warning(f"無法更新聚光燈游標：{error}")
+            return
+        self._save()
+
+    def _disable_spotlight_ui(self) -> None:
+        with suppress(Exception):
+            self.spotlight.set_enabled(False)
+        self.settings.spotlight.enabled = False
+        with QSignalBlocker(self.tray.panel.spotlight_enabled):
+            self.tray.panel.set_spotlight_enabled(False)
         self._save()
 
     def set_keystroke_enabled(self, enabled: bool) -> None:

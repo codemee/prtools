@@ -4,7 +4,7 @@ from PySide6.QtCore import QEasingCurve, QPoint, QPropertyAnimation, QRect, Qt, 
 from PySide6.QtGui import QColor, QCursor, QFont, QGuiApplication, QPainter, QPaintEvent
 from PySide6.QtWidgets import QWidget
 
-from prtools.platform import make_window_click_through
+from prtools.platform import keep_window_topmost, make_window_click_through
 from prtools.settings import KeystrokeSettings, SpotlightSettings
 
 
@@ -67,6 +67,7 @@ class SpotlightOverlay(OverlayWindow):
     def _follow_cursor(self) -> None:
         position = QCursor.pos()
         self.move(position.x() - self._diameter // 2, position.y() - self._diameter // 2)
+        keep_window_topmost(self)
 
     def paintEvent(self, event: QPaintEvent) -> None:
         del event
@@ -119,6 +120,7 @@ class KeystrokeOverlay(OverlayWindow):
         self._place_on_cursor_screen()
         self.show()
         self.raise_()
+        keep_window_topmost(self)
         self.update()
 
     def keys_released(self) -> None:

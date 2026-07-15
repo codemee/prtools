@@ -37,10 +37,27 @@ class FakeMonitor(QObject):
         self.stop_count += 1
 
 
+class FakeSpotlight:
+    def __init__(self) -> None:
+        self.enabled = False
+        self.diameter = 96
+        self.color = "#FFD54F"
+        self.opacity = 45
+
+    def set_enabled(self, enabled: bool) -> None:
+        self.enabled = enabled
+
+    def set_appearance(self, color: str, opacity: int, diameter: int) -> None:
+        self.color = color
+        self.opacity = opacity
+        self.diameter = diameter
+
+
 def test_controller_applies_live_spotlight_settings(qapp) -> None:
     store = MemoryStore()
     monitor = FakeMonitor()
-    controller = AppController(qapp, store, monitor)  # type: ignore[arg-type]
+    spotlight = FakeSpotlight()
+    controller = AppController(qapp, store, monitor, spotlight)  # type: ignore[arg-type]
 
     controller.set_spotlight_size(208)
     controller.set_spotlight_opacity(61)
@@ -53,7 +70,7 @@ def test_controller_applies_live_spotlight_settings(qapp) -> None:
 def test_keyboard_failure_reverts_enabled_state(qapp, monkeypatch) -> None:
     store = MemoryStore()
     monitor = FakeMonitor(succeeds=False)
-    controller = AppController(qapp, store, monitor)  # type: ignore[arg-type]
+    controller = AppController(qapp, store, monitor, FakeSpotlight())  # type: ignore[arg-type]
     warnings: list[str] = []
     monkeypatch.setattr(controller.tray, "notify_warning", warnings.append)
 
@@ -67,12 +84,13 @@ def test_keyboard_failure_reverts_enabled_state(qapp, monkeypatch) -> None:
 def test_cleanup_stops_effects(qapp) -> None:
     store = MemoryStore()
     monitor = FakeMonitor()
-    controller = AppController(qapp, store, monitor)  # type: ignore[arg-type]
+    spotlight = FakeSpotlight()
+    controller = AppController(qapp, store, monitor, spotlight)  # type: ignore[arg-type]
     controller.set_spotlight_enabled(True)
     controller.set_keystroke_enabled(True)
 
     controller.cleanup()
 
-    assert not controller.spotlight.isVisible()
+    assert not spotlight.enabled
     assert not monitor.running
     assert monitor.stop_count == 1
