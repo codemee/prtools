@@ -46,8 +46,10 @@ uv run python -m nuitka src/prtools/cursor_watchdog.py --onefile --output-dir=di
 ## 平台注意事項
 
 - Windows：不需要額外權限。啟用聚光燈時會暫時替換系統游標，停用或結束時自動恢復；獨立 watchdog 會在主程式異常終止時復原游標。
-- macOS：首次啟用按鍵顯示時，請依系統提示授予「輸入監控」或「輔助使用」權限。拒絕後按鍵顯示會保持關閉。
+- macOS：按鍵顯示使用 HID 層的唯讀事件監看，需要在「系統設定 → 隱私權與安全性 → 輸入監控」允許啟動本程式的應用程式（例如 ChatGPT、Terminal 或打包後的簡報瑞士刀）。監看器不會修改或攔截事件；即使組合鍵被其他快捷鍵工具處理，仍可先顯示按鍵。
 - Linux：完整支援目標為 X11，桌面環境必須提供 StatusNotifierItem 或 XEmbed 系統匣。GNOME 可能需要 AppIndicator 類型的擴充套件。
 - Wayland：受全域輸入與覆蓋層協定限制，按鍵顯示和點擊穿透不保證可用；程式會在選單中顯示警告。
 
 按鍵內容只用於即時畫面顯示，不會寫入設定、檔案或日誌。
+
+實作架構、macOS 原生視窗層級、權限模型與鍵盤事件流程請參閱 [技術設計](docs/TECHNICAL.md)。

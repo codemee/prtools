@@ -179,6 +179,9 @@ class WindowsCursorSpotlight:
                 self._watchdog.stop()
                 self._watchdog = None
 
+    def sync_position(self) -> None:
+        """The Windows implementation is the system cursor and needs no syncing."""
+
     def set_appearance(self, color: str, opacity: int, diameter: int) -> None:
         self._color = color
         self._opacity = opacity

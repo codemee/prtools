@@ -15,6 +15,8 @@ class SpotlightBackend(Protocol):
 
     def set_appearance(self, color: str, opacity: int, diameter: int) -> None: ...
 
+    def sync_position(self) -> None: ...
+
 
 def create_spotlight(settings: SpotlightSettings) -> SpotlightBackend:
     if sys.platform == "win32":

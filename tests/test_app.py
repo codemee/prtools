@@ -52,6 +52,9 @@ class FakeSpotlight:
         self.opacity = opacity
         self.diameter = diameter
 
+    def sync_position(self) -> None:
+        pass
+
 
 def test_controller_applies_live_spotlight_settings(qapp) -> None:
     store = MemoryStore()
@@ -75,6 +78,7 @@ def test_keyboard_failure_reverts_enabled_state(qapp, monkeypatch) -> None:
     monkeypatch.setattr(controller.tray, "notify_warning", warnings.append)
 
     controller.set_keystroke_enabled(True)
+    qapp.processEvents()
 
     assert not store.settings.keystroke.enabled
     assert not controller.tray.panel.keystroke_enabled.isChecked()
@@ -88,6 +92,7 @@ def test_cleanup_stops_effects(qapp) -> None:
     controller = AppController(qapp, store, monitor, spotlight)  # type: ignore[arg-type]
     controller.set_spotlight_enabled(True)
     controller.set_keystroke_enabled(True)
+    qapp.processEvents()
 
     controller.cleanup()
 

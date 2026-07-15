@@ -4,7 +4,11 @@ from PySide6.QtCore import QEasingCurve, QPoint, QPropertyAnimation, QRect, Qt, 
 from PySide6.QtGui import QColor, QCursor, QFont, QGuiApplication, QPainter, QPaintEvent
 from PySide6.QtWidgets import QWidget
 
-from prtools.platform import keep_window_topmost, make_window_click_through
+from prtools.platform import (
+    configure_overlay_level,
+    keep_window_topmost,
+    make_window_click_through,
+)
 from prtools.settings import KeystrokeSettings, SpotlightSettings
 
 
@@ -21,10 +25,16 @@ class OverlayWindow(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WidgetAttribute.WA_MacAlwaysShowToolWindow)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
     def showEvent(self, event: object) -> None:
         super().showEvent(event)  # type: ignore[arg-type]
-        QTimer.singleShot(0, lambda: make_window_click_through(self))
+        QTimer.singleShot(0, self._configure_native_window)
+
+    def _configure_native_window(self) -> None:
+        make_window_click_through(self)
+        configure_overlay_level(self)
 
 
 class SpotlightOverlay(OverlayWindow):
@@ -68,6 +78,9 @@ class SpotlightOverlay(OverlayWindow):
         position = QCursor.pos()
         self.move(position.x() - self._diameter // 2, position.y() - self._diameter // 2)
         keep_window_topmost(self)
+
+    def sync_position(self) -> None:
+        self._follow_cursor()
 
     def paintEvent(self, event: QPaintEvent) -> None:
         del event
@@ -119,7 +132,6 @@ class KeystrokeOverlay(OverlayWindow):
         self.setFixedSize(width, height)
         self._place_on_cursor_screen()
         self.show()
-        self.raise_()
         keep_window_topmost(self)
         self.update()
 

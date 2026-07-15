@@ -36,6 +36,41 @@ def make_window_click_through(widget: QWidget) -> None:
         return
 
 
+def configure_overlay_level(widget: QWidget) -> None:
+    """Keep macOS overlays above apps but below the menu bar and popup menus."""
+    if sys.platform != "darwin":
+        return
+    try:
+        import objc
+        from AppKit import (
+            NSColor,
+            NSFloatingWindowLevel,
+            NSWindowCollectionBehaviorCanJoinAllSpaces,
+            NSWindowCollectionBehaviorFullScreenAuxiliary,
+            NSWindowStyleMaskNonactivatingPanel,
+        )
+        from PySide6.QtGui import QGuiApplication
+
+        if QGuiApplication.platformName() != "cocoa":
+            return
+        native_view = objc.objc_object(c_void_p=int(widget.winId()))
+        native_window = native_view.window()
+        native_window.setLevel_(NSFloatingWindowLevel)
+        native_window.setHidesOnDeactivate_(False)
+        native_window.setHasShadow_(False)
+        native_window.setOpaque_(False)
+        native_window.setBackgroundColor_(NSColor.clearColor())
+        native_window.setStyleMask_(native_window.styleMask() | NSWindowStyleMaskNonactivatingPanel)
+        if native_window.respondsToSelector_("setBecomesKeyOnlyIfNeeded:"):
+            native_window.setBecomesKeyOnlyIfNeeded_(True)
+        native_window.setCollectionBehavior_(
+            NSWindowCollectionBehaviorCanJoinAllSpaces
+            | NSWindowCollectionBehaviorFullScreenAuxiliary
+        )
+    except (ImportError, OSError, RuntimeError, AttributeError, TypeError):
+        return
+
+
 def keep_window_topmost(widget: QWidget) -> None:
     """Keep an overlay above other topmost Windows such as the taskbar."""
     if sys.platform != "win32" or not widget.isVisible():
