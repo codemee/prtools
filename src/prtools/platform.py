@@ -26,7 +26,10 @@ def make_window_click_through(widget: QWidget) -> None:
         if sys.platform == "win32":
             _make_windows_click_through(window_id)
         elif sys.platform == "darwin":
-            _make_macos_click_through(window_id)
+            from PySide6.QtGui import QGuiApplication
+
+            if QGuiApplication.platformName() == "cocoa":
+                _make_macos_click_through(window_id)
         elif sys.platform.startswith("linux") and not is_wayland():
             _make_x11_click_through(window_id)
     except (ImportError, OSError, RuntimeError, AttributeError, TypeError):
