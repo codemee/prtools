@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 from PySide6.QtCore import QObject, Signal
@@ -25,11 +26,19 @@ class KeyboardMonitor(QObject):
         if self._listener is not None:
             return True, None
         try:
-            from pynput import keyboard
+            if sys.platform == "darwin":
+                from prtools.mac_keyboard import MacKeyboardListener
 
-            listener = keyboard.Listener(on_press=self._on_press, on_release=self._on_release)
-            listener.start()
-            listener.wait()
+                listener = MacKeyboardListener(self._on_press, self._on_release)
+                success, error = listener.start()
+                if not success:
+                    return False, error
+            else:
+                from pynput import keyboard
+
+                listener = keyboard.Listener(on_press=self._on_press, on_release=self._on_release)
+                listener.start()
+                listener.wait()
             self._listener = listener
         except Exception as error:  # pynput exposes backend-specific exceptions
             self._listener = None

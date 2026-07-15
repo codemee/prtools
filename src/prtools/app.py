@@ -4,7 +4,7 @@ import sys
 from collections.abc import Sequence
 from contextlib import suppress
 
-from PySide6.QtCore import QObject, QSignalBlocker
+from PySide6.QtCore import QObject, QSignalBlocker, QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from prtools.keyboard import KeyboardMonitor
@@ -31,6 +31,7 @@ class AppController(QObject):
         self.monitor = monitor or KeyboardMonitor(self)
         self.tray = TrayController(self.settings, self)
         self._shutting_down = False
+        self._keystroke_start_pending = False
 
         self.tray.connect_settings(
             spotlight_enabled=self.set_spotlight_enabled,
@@ -42,6 +43,8 @@ class AppController(QObject):
             keystroke_opacity=self.set_keystroke_opacity,
         )
         self.tray.exit_requested.connect(self.shutdown)
+        self.tray.menu.aboutToShow.connect(self.spotlight.sync_position)
+        self.tray.menu.aboutToHide.connect(self._start_pending_keyboard_monitor)
         self.monitor.chord_pressed.connect(self.keystroke.show_chord)
         self.monitor.all_released.connect(self.keystroke.keys_released)
         self.monitor.failed.connect(self._keyboard_failed)
@@ -95,15 +98,27 @@ class AppController(QObject):
 
     def set_keystroke_enabled(self, enabled: bool) -> None:
         if enabled:
-            success, error = self.monitor.start()
-            if not success:
-                self._disable_keystroke_ui()
-                self.tray.notify_warning(f"無法啟用按鍵顯示：{error or '未知錯誤'}")
-                return
+            self._keystroke_start_pending = True
+            if not self.tray.menu.isVisible():
+                QTimer.singleShot(0, self._start_pending_keyboard_monitor)
+            return
         else:
+            self._keystroke_start_pending = False
             self.monitor.stop()
             self.keystroke.hide_now()
         self.settings.keystroke.enabled = enabled
+        self._save()
+
+    def _start_pending_keyboard_monitor(self) -> None:
+        if not self._keystroke_start_pending:
+            return
+        self._keystroke_start_pending = False
+        success, error = self.monitor.start()
+        if not success:
+            self._disable_keystroke_ui()
+            self.tray.notify_warning(f"無法啟用按鍵顯示：{error or '未知錯誤'}")
+            return
+        self.settings.keystroke.enabled = True
         self._save()
 
     def set_keystroke_color(self, color: str) -> None:
@@ -124,6 +139,7 @@ class AppController(QObject):
         self.tray.notify_warning(f"按鍵監聽已停止：{message}")
 
     def _disable_keystroke_ui(self) -> None:
+        self._keystroke_start_pending = False
         self.monitor.stop()
         self.keystroke.hide_now()
         self.settings.keystroke.enabled = False
@@ -142,6 +158,7 @@ class AppController(QObject):
         self._app.quit()
 
     def cleanup(self) -> None:
+        self._keystroke_start_pending = False
         self.monitor.stop()
         self.spotlight.set_enabled(False)
         self.keystroke.hide_now()

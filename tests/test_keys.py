@@ -36,6 +36,7 @@ def test_release_reports_only_when_every_key_is_up() -> None:
     tracker.press(letter)
 
     assert not tracker.release(letter)
+    assert tracker.label == "Ctrl"
     assert tracker.release(ctrl)
     assert tracker.label == ""
 
