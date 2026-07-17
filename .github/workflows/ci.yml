@@ -32,29 +32,3 @@ jobs:
       - name: Test under X11
         if: runner.os == 'Linux'
         run: xvfb-run -a uv run pytest -q
-
-  package:
-    needs: test
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install Linux packaging dependencies
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y binutils patchelf libegl1 libxkbcommon-x11-0 libxcb-cursor0
-      - run: uv sync --locked
-      - run: uv run pyside6-deploy -c pysidedeploy.spec --force
-      - name: Build Windows cursor watchdog
-        if: runner.os == 'Windows'
-        run: uv run python -m nuitka src/prtools/cursor_watchdog.py --onefile --output-dir=dist --output-filename=prtools-cursor-watchdog.exe --assume-yes-for-downloads
-      - uses: actions/upload-artifact@v4
-        with:
-          name: prtools-${{ runner.os }}
-          path: dist/
