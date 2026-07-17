@@ -20,12 +20,14 @@ uv tool install .
 prtools
 ```
 
-也可以直接從 GitHub 安裝：
+也可以直接從 GitHub 安裝最新正式版；`latest` 標籤會在每次正式發布時更新：
 
 ```powershell
-uv tool install git+https://github.com/codemee/prtools.git
+uv tool install git+https://github.com/codemee/prtools.git@latest
 prtools
 ```
+
+若要固定特定版本，將 `latest` 改成版本標籤，例如 `v0.0.1`。
 
 若安裝後找不到 `prtools` 指令，執行 `uv tool update-shell`，再重新開啟終端機。移除工具可使用 `uv tool uninstall prtools`。
 
@@ -37,10 +39,10 @@ prtools
 uvx --from . prtools
 ```
 
-或直接從 GitHub 執行：
+或直接從 GitHub 執行最新正式版：
 
 ```powershell
-uvx --from git+https://github.com/codemee/prtools.git prtools
+uvx --from git+https://github.com/codemee/prtools.git@latest prtools
 ```
 
 `uvx` 會在隔離環境中準備並執行程式，不會把 `prtools` 持久安裝到工具目錄。

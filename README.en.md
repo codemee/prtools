@@ -20,12 +20,14 @@ uv tool install .
 prtools
 ```
 
-You can also install directly from GitHub:
+You can also install the latest stable release directly from GitHub. The `latest` tag is updated for every stable release:
 
 ```powershell
-uv tool install git+https://github.com/codemee/prtools.git
+uv tool install git+https://github.com/codemee/prtools.git@latest
 prtools
 ```
+
+To pin a specific release, replace `latest` with a version tag such as `v0.0.1`.
 
 If the `prtools` command is not found after installation, run `uv tool update-shell` and open a new terminal. To remove the tool, run `uv tool uninstall prtools`.
 
@@ -37,10 +39,10 @@ From a downloaded project directory, run:
 uvx --from . prtools
 ```
 
-Or run it directly from GitHub:
+Or run the latest stable release directly from GitHub:
 
 ```powershell
-uvx --from git+https://github.com/codemee/prtools.git prtools
+uvx --from git+https://github.com/codemee/prtools.git@latest prtools
 ```
 
 `uvx` prepares and runs the application in an isolated environment without persistently installing the `prtools` command in the tool directory.
