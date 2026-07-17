@@ -1,5 +1,7 @@
 # 技術設計
 
+[繁體中文](TECHNICAL.md) | [English](TECHNICAL.en.md)
+
 本文說明簡報瑞士刀的跨平台後端、macOS 原生整合及相關安全邊界。
 
 ## 元件與資料流

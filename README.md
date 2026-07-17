@@ -1,5 +1,7 @@
 # 簡報瑞士刀
 
+[繁體中文](README.md) | [English](README.en.md)
+
 跨平台的系統匣簡報輔助工具。程式不會開啟主視窗，所有設定都在系統匣圖示的右鍵選單中完成。
 
 ## 功能
@@ -25,12 +27,6 @@ uv tool install git+https://github.com/codemee/prtools.git
 prtools
 ```
 
-這是私人 repository，因此從 GitHub 安裝前必須先設定 Git 認證。若已使用 `gh` 登入，可執行：
-
-```powershell
-gh auth setup-git
-```
-
 若安裝後找不到 `prtools` 指令，執行 `uv tool update-shell`，再重新開啟終端機。移除工具可使用 `uv tool uninstall prtools`。
 
 ## 使用 uvx 免安裝執行
@@ -41,7 +37,7 @@ gh auth setup-git
 uvx --from . prtools
 ```
 
-或直接從 GitHub 執行（同樣需要 Git 認證）：
+或直接從 GitHub 執行：
 
 ```powershell
 uvx --from git+https://github.com/codemee/prtools.git prtools
@@ -75,4 +71,4 @@ uv run pytest -q
 
 按鍵內容只用於即時畫面顯示，不會寫入設定、檔案或日誌。
 
-實作架構、macOS 原生視窗層級、權限模型與鍵盤事件流程請參閱 [技術設計](docs/TECHNICAL.md)。
+實作架構、macOS 原生視窗層級、權限模型與鍵盤事件流程請參閱[技術設計](docs/TECHNICAL.md)。
